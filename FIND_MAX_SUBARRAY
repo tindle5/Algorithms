@@ -1,0 +1,268 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALGORITHMS_FIND_MAX_SUBARRAY
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_algorithms_find_max_subarray.
+
+DATA:
+  gt_digits TYPE abadr_tab_int4.
+
+DATA:
+  gv_low  TYPE int4,
+  gv_high TYPE int4,
+  gv_sum  TYPE int4.
+
+
+INITIALIZATION.
+  PERFORM f_populate_data     CHANGING
+                                gt_digits.
+
+START-OF-SELECTION.
+  PERFORM f_write_result      USING
+                                gt_digits
+                                'Array'
+                                0
+                                0
+                                0.
+
+  PERFORM f_find_max_subarray USING
+                                gt_digits
+                                1
+                                10
+                              CHANGING
+                                gv_low
+                                gv_high
+                                gv_sum.
+
+END-OF-SELECTION.
+  PERFORM f_write_result      USING
+                                gt_digits
+                                'Maximum Subarray'
+                                gv_low
+                                gv_high
+                                gv_sum.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_POPULATE_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      <--P_GT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_populate_data  CHANGING ct_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_int4 TYPE int4.
+
+  DO 10 TIMES.
+    CALL FUNCTION 'RANDOM_I4'
+      EXPORTING
+        rnd_min   = -50
+        rnd_max   = 100
+      IMPORTING
+        rnd_value = lv_int4.
+
+    APPEND lv_int4 TO ct_digits.
+  ENDDO.
+
+ENDFORM.                    " F_POPULATE_DATA
+*&---------------------------------------------------------------------*
+*&      Form  F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_write_result USING
+                      ut_digits TYPE abadr_tab_int4
+                      uv_title  TYPE string
+                      VALUE(uv_low)
+                      VALUE(uv_high)
+                      VALUE(uv_sum).
+
+  DATA lv_int4 TYPE int4.
+
+  WRITE:
+    uv_title,
+    /.
+
+  IF uv_title = 'Array'.
+    LOOP AT ut_digits INTO lv_int4.
+      WRITE lv_int4.
+    ENDLOOP.
+    WRITE /.
+  ELSE.
+    WRITE:
+      uv_low,
+      uv_high,
+      uv_sum.
+  ENDIF.
+
+ENDFORM.                    " F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*&      Form  F_FIND_MAX_SUBARRAY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*      -->P_1      text
+*      -->P_10     text
+*----------------------------------------------------------------------*
+FORM f_find_max_subarray  USING
+                            ut_digits TYPE abadr_tab_int4
+                            value(uv_start)
+                            value(uv_end)
+                          CHANGING
+                            cv_low  TYPE int4
+                            cv_high TYPE int4
+                            cv_sum  TYPE int4.
+  DATA:
+    lv_temp       TYPE p DECIMALS 2,
+    lv_mid        TYPE int4,
+    lv_mid_next   TYPE int4,
+    lv_left_low   TYPE int4,
+    lv_left_high  TYPE int4,
+    lv_left_sum   TYPE int4,
+    lv_right_low  TYPE int4,
+    lv_right_high TYPE int4,
+    lv_right_sum  TYPE int4,
+    lv_cross_low  TYPE int4,
+    lv_cross_high TYPE int4,
+    lv_cross_sum  TYPE int4.
+
+
+  IF uv_start = uv_end.
+
+    cv_low  = uv_start.
+    cv_high = uv_end.
+
+    READ TABLE ut_digits INTO cv_sum INDEX cv_low.
+
+  ELSE.
+
+    lv_temp     = FLOOR( ( uv_start + uv_end ) / 2 ).
+    lv_mid      = lv_temp.
+    lv_mid_next = lv_mid + 1.
+*   Find left maximum subarray
+    PERFORM f_find_max_subarray USING
+                                  gt_digits
+                                  uv_start
+                                  lv_mid
+                                CHANGING
+                                  lv_left_low
+                                  lv_left_high
+                                  lv_left_sum.
+*   Find right maximum subarray
+    PERFORM f_find_max_subarray USING
+                                  gt_digits
+                                  lv_mid_next
+                                  uv_end
+                                CHANGING
+                                  lv_right_low
+                                  lv_right_high
+                                  lv_right_sum.
+*   Find crossing maximum subarray
+    PERFORM f_max_cross_subarray  USING
+                                    gt_digits
+                                    uv_start
+                                    lv_mid
+                                    uv_end
+                                  CHANGING
+                                    lv_cross_low
+                                    lv_cross_high
+                                    lv_cross_sum.
+    IF lv_left_sum > lv_right_sum
+      AND lv_left_sum > lv_cross_sum.
+
+      cv_low  = lv_left_low.
+      cv_high = lv_left_high.
+      cv_sum  = lv_left_sum.
+
+    ELSEIF lv_right_sum > lv_left_sum
+      AND lv_right_sum > lv_cross_sum.
+
+      cv_low  = lv_right_low.
+      cv_high = lv_right_high.
+      cv_sum  = lv_right_sum.
+
+    ELSE.
+
+      cv_low  = lv_cross_low.
+      cv_high = lv_cross_high.
+      cv_sum  = lv_cross_sum.
+
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.                    " F_FIND_MAX_SUBARRAY
+*&---------------------------------------------------------------------*
+*&      Form  F_MAX_CROSS_SUBARRAY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*      -->P_UV_START  text
+*      -->P_LV_MID  text
+*      -->P_UV_END  text
+*      <--P_LV_CROSS_LOW  text
+*      <--P_LV_CROSS_HIGH  text
+*      <--P_LV_CROSS_SUM  text
+*----------------------------------------------------------------------*
+FORM f_max_cross_subarray USING
+                            ut_digits TYPE abadr_tab_int4
+                            value(uv_start)
+                            value(uv_mid)
+                            value(uv_end)
+                          CHANGING
+                            cv_low  TYPE int4
+                            cv_high TYPE int4
+                            cv_sum  TYPE int4.
+  DATA:
+    lv_digit      TYPE int4,
+    lv_mid_next   TYPE int4,
+    lv_left_sum   TYPE int4 VALUE -999,
+    lv_right_sum  TYPE int4 VALUE -999,
+    lv_sum        TYPE int4,
+    lv_max_left   TYPE int4,
+    lv_max_right  TYPE int4,
+    lv_index      TYPE sy-index,
+    lv_counter    TYPE int4.
+
+  lv_sum = 0.
+
+  lv_index   = uv_mid.
+  lv_counter = uv_mid - uv_start + 1.
+
+  DO lv_counter TIMES.
+    CLEAR  lv_digit.
+    READ TABLE ut_digits INTO lv_digit INDEX lv_index.
+    lv_sum = lv_sum + lv_digit.
+    IF lv_sum > lv_left_sum.
+      lv_left_sum = lv_sum.
+      lv_max_left = lv_index.
+    ENDIF.
+    lv_index = lv_index - 1.
+  ENDDO.
+
+  lv_sum = 0.
+  lv_mid_next = uv_mid + 1.
+
+  LOOP AT ut_digits INTO lv_digit FROM lv_mid_next TO uv_end.
+    lv_sum = lv_sum + lv_digit.
+    IF lv_sum > lv_right_sum.
+      lv_right_sum = lv_sum.
+      lv_max_right = sy-tabix.
+    ENDIF.
+  ENDLOOP.
+
+  cv_low  = lv_max_left.
+  cv_high = lv_max_right.
+  cv_sum  = lv_left_sum + lv_right_sum.
+
+ENDFORM.                    " F_MAX_CROSS_SUBARRAY
