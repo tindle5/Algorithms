@@ -1,0 +1,260 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALGORITHMS_HEAP_SORT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_algorithms_heap_sort.
+
+DATA:
+  gt_digits     TYPE abadr_tab_int4.
+
+DATA:
+  gv_heap_size  TYPE int4.
+
+
+DEFINE parent.
+  &2 = floor( &1 / 2 ).
+END-OF-DEFINITION.
+
+DEFINE left.
+  &2 = 2 * &1.
+END-OF-DEFINITION.
+
+DEFINE right.
+  &2 = 2 * &1 + 1.
+END-OF-DEFINITION.
+
+
+INITIALIZATION.
+  PERFORM f_populate_data CHANGING
+                            gt_digits.
+
+START-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_digits
+                            'Before'.
+
+  PERFORM f_heap_sort     USING
+                            gt_digits.
+
+END-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_digits
+                            'After'.
+
+*&---------------------------------------------------------------------*
+*&      Form  f_populate_data
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->CT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_populate_data  CHANGING ct_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_int4 TYPE int4.
+
+*  DO 10 TIMES.
+*    CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+*      EXPORTING
+*        range  = 100
+*      IMPORTING
+*        random = lv_int4.
+*
+*    APPEND lv_int4 TO ct_digits.
+*  ENDDO.
+
+  DO 10 TIMES.
+    CASE sy-index.
+      WHEN 1.
+        lv_int4 = 4.
+      WHEN 2.
+        lv_int4 = 1.
+      WHEN 3.
+        lv_int4 = 3.
+      WHEN 4.
+        lv_int4 = 2.
+      WHEN 5.
+        lv_int4 = 16.
+      WHEN 6.
+        lv_int4 = 9.
+      WHEN 7.
+        lv_int4 = 10.
+      WHEN 8.
+        lv_int4 = 14.
+      WHEN 9.
+        lv_int4 = 8.
+      WHEN 10.
+        lv_int4 = 7.
+      WHEN OTHERS.
+    ENDCASE.
+    APPEND lv_int4 TO ct_digits.
+  ENDDO.
+
+ENDFORM.                    " f_populate_data
+*&---------------------------------------------------------------------*
+*&      Form  F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_write_result USING
+                      ut_digits TYPE abadr_tab_int4
+                      uv_title  TYPE string.
+
+  DATA lv_int4 TYPE int4.
+
+  WRITE:
+    uv_title,
+    /.
+
+  LOOP AT ut_digits INTO lv_int4.
+    WRITE lv_int4.
+  ENDLOOP.
+
+ENDFORM.                    " F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*&      Form  F_MAX_HEAPIFY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*      -->P_1      text
+*----------------------------------------------------------------------*
+FORM f_max_heapify  USING    ut_digits TYPE abadr_tab_int4
+                             value(uv_parent_idx).
+
+  DATA:
+    lv_parent_val   TYPE int4,
+    lv_left_val     TYPE int4,
+    lv_right_val    TYPE int4,
+    lv_left_node    TYPE int4,
+    lv_right_node   TYPE int4,
+    lv_largest      TYPE int4,
+    lv_largest_val  TYPE int4.
+
+  FIELD-SYMBOLS:
+    <fs_digit>      TYPE int4.
+
+
+  left  uv_parent_idx lv_left_node.
+  right uv_parent_idx lv_right_node.
+
+  READ TABLE ut_digits INTO lv_parent_val INDEX uv_parent_idx.
+  READ TABLE ut_digits INTO lv_left_val   INDEX lv_left_node.
+  READ TABLE ut_digits INTO lv_right_val  INDEX lv_right_node.
+
+  IF lv_left_node <= gv_heap_size
+    AND lv_left_val > lv_parent_val.
+    lv_largest = lv_left_node.
+  ELSE.
+    lv_largest = uv_parent_idx.
+  ENDIF.
+
+  CLEAR lv_largest_val.
+  READ TABLE ut_digits INTO lv_largest_val INDEX lv_largest.
+
+  IF lv_right_node <= gv_heap_size
+    AND lv_right_val > lv_largest_val.
+    lv_largest = lv_right_node.
+    CLEAR lv_largest_val.
+    READ TABLE ut_digits INTO lv_largest_val INDEX lv_largest.
+  ENDIF.
+
+  IF lv_largest <> uv_parent_idx.
+
+    READ TABLE ut_digits ASSIGNING <fs_digit> INDEX uv_parent_idx.
+    IF sy-subrc = 0.
+      <fs_digit> = lv_largest_val.
+    ENDIF.
+
+    READ TABLE ut_digits ASSIGNING <fs_digit> INDEX lv_largest.
+    IF sy-subrc = 0.
+      <fs_digit> = lv_parent_val.
+    ENDIF.
+
+    PERFORM f_max_heapify USING
+                            ut_digits
+                            lv_largest.
+  ENDIF.
+
+ENDFORM.                    " F_MAX_HEAPIFY
+*&---------------------------------------------------------------------*
+*&      Form  F_BUILD_MAX_HEAP
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_build_max_heap USING ut_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_temp       TYPE p DECIMALS 2,
+    lv_counter    TYPE int4,
+    lv_index      TYPE int4.
+
+  lv_temp = FLOOR( gv_heap_size / 2 ).
+  lv_counter = lv_temp.
+
+  lv_index = lv_counter.
+
+  DO lv_counter TIMES.
+    PERFORM f_max_heapify USING
+                            gt_digits
+                            lv_index.
+    lv_index = lv_index - 1.
+  ENDDO.
+
+ENDFORM.                    " F_BUILD_MAX_HEAP
+*&---------------------------------------------------------------------*
+*&      Form  F_HEAP_SORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_heap_sort  USING ut_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_counter      TYPE int4,
+    lv_index        TYPE int4,
+    lv_top_val      TYPE int4.
+
+  FIELD-SYMBOLS:
+    <fs_top_digit>  TYPE int4,
+    <fs_digit>      TYPE int4.
+
+
+  gv_heap_size = LINES( ut_digits ).
+  lv_counter   = gv_heap_size - 1.
+  lv_index     = gv_heap_size.
+
+  PERFORM f_build_max_heap USING gt_digits.
+
+  DO lv_counter TIMES.
+
+    READ TABLE ut_digits ASSIGNING <fs_digit> INDEX lv_index.
+    IF sy-subrc = 0.
+      READ TABLE ut_digits ASSIGNING <fs_top_digit> INDEX 1.
+      IF sy-subrc = 0.
+        lv_top_val     = <fs_top_digit>.
+        <fs_top_digit> = <fs_digit>.
+        <fs_digit>     = lv_top_val.
+      ENDIF.
+    ENDIF.
+
+    gv_heap_size = gv_heap_size - 1.
+
+    PERFORM f_max_heapify USING
+                            ut_digits
+                            1.
+
+    lv_index = lv_index - 1.
+
+  ENDDO.
+
+ENDFORM.                    " F_HEAP_SORT
