@@ -1,0 +1,231 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALGORITHMS_QUICK_SORT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_algorithms_quick_sort.
+
+DATA:
+  gt_digits     TYPE abadr_tab_int4.
+
+
+INITIALIZATION.
+  PERFORM f_populate_data CHANGING
+                            gt_digits.
+
+START-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_digits
+                            'Before'.
+
+  PERFORM f_quick_sort     USING
+                            gt_digits
+                            1
+                            10.
+
+END-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_digits
+                            'After'.
+
+*&---------------------------------------------------------------------*
+*&      Form  f_populate_data
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->CT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_populate_data  CHANGING ct_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_int4 TYPE int4.
+
+*  DO 10 TIMES.
+*    CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+*      EXPORTING
+*        range  = 100
+*      IMPORTING
+*        random = lv_int4.
+*
+*    APPEND lv_int4 TO ct_digits.
+*  ENDDO.
+
+  DO 10 TIMES.
+*    CASE sy-index.
+*      WHEN 1.
+*        lv_int4 = 2.
+*      WHEN 2.
+*        lv_int4 = 8.
+*      WHEN 3.
+*        lv_int4 = 7.
+*      WHEN 4.
+*        lv_int4 = 1.
+*      WHEN 5.
+*        lv_int4 = 3.
+*      WHEN 6.
+*        lv_int4 = 5.
+*      WHEN 7.
+*        lv_int4 = 6.
+*      WHEN 8.
+*        lv_int4 = 4.
+*      WHEN OTHERS.
+*    ENDCASE.
+    CASE sy-index.
+      WHEN 1.
+        lv_int4 = 9.
+      WHEN 2.
+        lv_int4 = 7.
+      WHEN 3.
+        lv_int4 = 5.
+      WHEN 4.
+        lv_int4 = 11.
+      WHEN 5.
+        lv_int4 = 12.
+      WHEN 6.
+        lv_int4 = 2.
+      WHEN 7.
+        lv_int4 = 14.
+      WHEN 8.
+        lv_int4 = 3.
+      WHEN 9.
+        lv_int4 = 10.
+      WHEN 10.
+        lv_int4 = 6.
+      WHEN OTHERS.
+    ENDCASE.
+    APPEND lv_int4 TO ct_digits.
+  ENDDO.
+
+ENDFORM.                    " f_populate_data
+*&---------------------------------------------------------------------*
+*&      Form  F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_write_result USING
+                      ut_digits TYPE abadr_tab_int4
+                      uv_title  TYPE string.
+
+  DATA lv_int4 TYPE int4.
+
+  WRITE:
+    uv_title,
+    /.
+
+  LOOP AT ut_digits INTO lv_int4.
+    WRITE lv_int4.
+  ENDLOOP.
+
+ENDFORM.                    " F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*&      Form  F_QUICK_SORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_quick_sort  USING
+                    ut_digits TYPE abadr_tab_int4
+                    uv_start  TYPE int4
+                    uv_end    TYPE int4.
+
+  DATA:
+    lv_pivot     TYPE int4,
+    lv_pre_node   TYPE int4,
+    lv_next_node  TYPE int4.
+
+
+  IF uv_start < uv_end.
+    PERFORM f_partition USING
+                          ut_digits
+                          uv_start
+                          uv_end
+                        CHANGING
+                          lv_pivot.
+
+    lv_pre_node  = lv_pivot - 1.
+    lv_next_node = lv_pivot + 1.
+
+    PERFORM f_quick_sort USING
+                          ut_digits
+                          uv_start
+                          lv_pre_node.
+
+    PERFORM f_quick_sort USING
+                          ut_digits
+                          lv_next_node
+                          uv_end.
+  ENDIF.
+
+ENDFORM.                    " f_quick_sort
+*&---------------------------------------------------------------------*
+*&      Form  F_PARTITION
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_UT_DIGITS  text
+*      -->P_UV_START  text
+*      -->P_UV_END  text
+*      <--P_LV_MIDDLE  text
+*----------------------------------------------------------------------*
+FORM f_partition  USING
+                    ut_digits TYPE abadr_tab_int4
+                    uv_start  TYPE int4
+                    uv_end    TYPE int4
+                  CHANGING
+                    cv_pivot TYPE int4.
+
+  DATA:
+    lv_counter      TYPE int4,
+    lv_idx_i        TYPE int4,
+    lv_idx_i_next   TYPE int4,
+    lv_idx_j        TYPE int4,
+    lv_temp_val     TYPE int4.
+
+  FIELD-SYMBOLS:
+    <fs_val_pivot>  TYPE int4,
+    <fs_val_i>      TYPE int4,
+    <fs_val_i_next> TYPE int4,
+    <fs_val_j>      TYPE int4.
+
+
+  READ TABLE ut_digits ASSIGNING <fs_val_pivot> INDEX uv_end.
+  CHECK sy-subrc = 0.
+
+  lv_counter = uv_end - uv_start.
+  lv_idx_i   = uv_start - 1.
+  lv_idx_j   = uv_start.
+
+  DO lv_counter TIMES.
+    READ TABLE ut_digits ASSIGNING <fs_val_j> INDEX lv_idx_j.
+    IF sy-subrc = 0.
+      IF <fs_val_j> <= <fs_val_pivot>.
+        lv_idx_i = lv_idx_i + 1.
+        READ TABLE ut_digits ASSIGNING <fs_val_i> INDEX lv_idx_i.
+        IF sy-subrc = 0.
+          lv_temp_val = <fs_val_i>.
+          <fs_val_i> = <fs_val_j>.
+          <fs_val_j> = lv_temp_val.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+    lv_idx_j = lv_idx_j + 1.
+  ENDDO.
+
+  lv_idx_i_next = lv_idx_i + 1.
+  READ TABLE ut_digits ASSIGNING <fs_val_i_next> INDEX lv_idx_i_next.
+  IF sy-subrc = 0.
+    lv_temp_val = <fs_val_i_next>.
+    <fs_val_i_next> = <fs_val_pivot>.
+    <fs_val_pivot>  = lv_temp_val.
+  ENDIF.
+
+  cv_pivot = lv_idx_i_next.
+
+ENDFORM.                    " F_PARTITION
