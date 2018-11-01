@@ -1,0 +1,179 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALGORITHMS_COUNTING_SORT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_algorithms_counting_sort.
+
+DATA:
+  gt_digits TYPE abadr_tab_int4,
+  gt_sorted TYPE abadr_tab_int4.
+
+
+INITIALIZATION.
+  PERFORM f_populate_data CHANGING
+                            gt_digits.
+
+START-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_digits
+                            'Before'.
+
+  PERFORM f_counting_sort USING
+                            gt_digits
+                            5
+                          CHANGING
+                            gt_sorted.
+
+END-OF-SELECTION.
+  PERFORM f_write_result  USING
+                            gt_sorted
+                            'After'.
+
+*&---------------------------------------------------------------------*
+*&      Form  f_populate_data
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->CT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_populate_data  CHANGING ct_digits TYPE abadr_tab_int4.
+
+  DATA:
+    lv_int4 TYPE int4.
+
+*  DO 10 TIMES.
+*    CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+*      EXPORTING
+*        range  = 100
+*      IMPORTING
+*        random = lv_int4.
+*
+*    APPEND lv_int4 TO ct_digits.
+*  ENDDO.
+
+  DO 8 TIMES.
+    CASE sy-index.
+      WHEN 1.
+        lv_int4 = 2.
+      WHEN 2.
+        lv_int4 = 5.
+      WHEN 3.
+        lv_int4 = 3.
+      WHEN 4.
+        lv_int4 = 1.
+      WHEN 5.
+        lv_int4 = 2.
+      WHEN 6.
+        lv_int4 = 3.
+      WHEN 7.
+        lv_int4 = 1.
+      WHEN 8.
+        lv_int4 = 3.
+      WHEN OTHERS.
+    ENDCASE.
+    APPEND lv_int4 TO ct_digits.
+  ENDDO.
+
+ENDFORM.                    " f_populate_data
+*&---------------------------------------------------------------------*
+*&      Form  F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_write_result USING
+                      ut_digits TYPE abadr_tab_int4
+                      uv_title  TYPE string.
+
+  DATA lv_int4 TYPE int4.
+
+  WRITE:
+    uv_title,
+    /.
+
+  LOOP AT ut_digits INTO lv_int4.
+    WRITE lv_int4.
+  ENDLOOP.
+
+ENDFORM.                    " F_WRITE_RESULT
+*&---------------------------------------------------------------------*
+*&      Form  f_counting_sort
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_GT_DIGITS  text
+*----------------------------------------------------------------------*
+FORM f_counting_sort  USING
+                        ut_digits TYPE abadr_tab_int4
+                        uv_end    TYPE int4
+                      CHANGING
+                        ct_sorted TYPE abadr_tab_int4.
+
+  DATA:
+    lt_digits_b TYPE abadr_tab_int4,
+    lt_digits_c TYPE abadr_tab_int4.
+
+  DATA:
+    lv_digit    TYPE int4,
+    lv_digit_a  TYPE int4,
+    lv_digit_b  TYPE int4,
+    lv_digit_c  TYPE int4,
+    lv_lines    TYPE int4,
+    lv_index    TYPE sy-index.
+
+  FIELD-SYMBOLS:
+    <fs_digit_a> TYPE int4,
+    <fs_digit_b> TYPE int4,
+    <fs_digit_c> TYPE int4.
+
+  DO uv_end TIMES.
+    lv_digit = 0.
+    APPEND lv_digit TO lt_digits_c.
+  ENDDO.
+
+  lv_lines = LINES( ut_digits ).
+  DO lv_lines TIMES.
+    lv_digit = 0.
+    APPEND lv_digit TO lt_digits_b.
+  ENDDO.
+
+  LOOP AT ut_digits INTO lv_digit.
+    READ TABLE lt_digits_c ASSIGNING <fs_digit_c> INDEX lv_digit.
+    IF sy-subrc = 0.
+      <fs_digit_c> = <fs_digit_c> + 1.
+    ENDIF.
+  ENDLOOP.
+
+  DO uv_end TIMES.
+    READ TABLE lt_digits_c ASSIGNING <fs_digit_c> INDEX sy-index.
+    IF sy-subrc = 0.
+      lv_index = sy-index - 1.
+      CLEAR lv_digit.
+      READ TABLE lt_digits_c INTO lv_digit INDEX lv_index.
+      <fs_digit_c> = <fs_digit_c> + lv_digit.
+    ENDIF.
+  ENDDO.
+
+  lv_index = lv_lines.
+
+  DO lv_lines TIMES.
+    READ TABLE ut_digits INTO lv_digit_a INDEX lv_index.
+    READ TABLE lt_digits_c ASSIGNING <fs_digit_c> INDEX lv_digit_a.
+    IF sy-subrc = 0.
+      READ TABLE lt_digits_b ASSIGNING <fs_digit_b> INDEX <fs_digit_c>.
+      IF sy-subrc = 0.
+        <fs_digit_b> = lv_digit_a.
+      ENDIF.
+      <fs_digit_c> = <fs_digit_c> - 1.
+    ENDIF.
+    lv_index = lv_index - 1.
+  ENDDO.
+
+  ct_sorted = lt_digits_b.
+
+ENDFORM.                    " f_counting_sort
